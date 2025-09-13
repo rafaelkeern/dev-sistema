@@ -206,7 +206,7 @@ export default function Upload() {
       await workbook.xlsx.load(arrayBuffer);
     } catch (excelError) {
       console.error('Erro ao processar Excel:', excelError);
-      throw new Error('Erro ao processar arquivo Excel. Verifique se o arquivo não está corrompido e tente novamente.');
+      throw new Error('Arquivo Excel inválido ou corrompido. Verifique se o arquivo está íntegro e no formato correto (.xlsx ou .xls) e tente novamente.');
     }
     
     const worksheet = workbook.worksheets[0];
