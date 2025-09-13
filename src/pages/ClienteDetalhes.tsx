@@ -609,15 +609,6 @@ export default function ClienteDetalhes() {
                     <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Registros
                     </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Total Débito
-                    </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Total Crédito
-                    </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Saldo Total
-                    </th>
                     <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Ações
                     </th>
@@ -639,21 +630,6 @@ export default function ClienteDetalhes() {
                           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                             {periodo.count}
                           </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right">
-                          <div className="text-sm text-red-600">
-                            {formatCurrency(periodo.total_debito)}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right">
-                          <div className="text-sm text-green-600">
-                            {formatCurrency(periodo.total_credito)}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right">
-                          <div className={`text-sm font-medium ${periodo.total_saldo_atual >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                            {formatCurrency(periodo.total_saldo_atual)}
-                          </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-center">
                           <button
@@ -823,9 +799,6 @@ export default function ClienteDetalhes() {
                     <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Registros
                     </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Total Valor
-                    </th>
                     <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Ações
                     </th>
@@ -847,11 +820,6 @@ export default function ClienteDetalhes() {
                           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
                             {periodo.count}
                           </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right">
-                          <div className={`text-sm font-medium ${periodo.total_valor >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                            {formatCurrency(periodo.total_valor)}
-                          </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-center">
                           <button
