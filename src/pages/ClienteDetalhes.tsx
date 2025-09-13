@@ -209,14 +209,18 @@ export default function ClienteDetalhes() {
     }).format(value);
   };
 
-  const formatCurrencyFromInt = (value: number) => {
-  // Dividir por 100 para considerar os dois últimos dígitos como centavos
-  const valorDecimal = value;
+  const formatCurrencyFromInt =(value: number) => {
+  // Transformar número em string
+  const strValue = value.toString();
 
-  return new Intl.NumberFormat('pt-BR', {
-    style: 'currency',
-    currency: 'BRL'
-  }).format(valorDecimal);
+  // Separar parte dos reais e dos centavos
+  const reais = strValue.slice(0, -2) || '0';
+  const centavos = strValue.slice(-2);
+
+  // Formatar os reais com separadores de milhar
+  const reaisFormatados = reais.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+
+  return `R$${reaisFormatados},${centavos}`;
 };
 
 
