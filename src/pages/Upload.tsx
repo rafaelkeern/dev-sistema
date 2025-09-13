@@ -107,83 +107,74 @@ export default function Upload() {
   };
 
   const handleDFCUpload = async (workbook: any, cliente: any, periodoInicio: string, periodoFim: string, periodoStr: string) => {
-    const worksheet = workbook.worksheets[0];
+  const worksheet = workbook.worksheets[0];
+
+  // Ler dados das linhas a partir da linha 7
+  const dfcData = [];
+  let rowNum = 7;
+
+  while (true) {
+    const row = worksheet.getRow(rowNum);
     
-    // Ler dados das linhas a partir da linha 7
-    const dfcData = [];
-    let rowNum = 7;
-    let currentTitulo = '';
-
-    while (true) {
-      const row = worksheet.getRow(rowNum);
-      
-      const cellA = row.getCell('A').value?.toString().trim();
-      
-      // Parar quando chegar em "DISPONIBILIDADES - NO FINAL DO PERÍODO"
-      if (cellA === "DISPONIBILIDADES - NO FINAL DO PERÍODO") break;
-      
-      // Se não há mais dados, parar
-      if (!cellA && !row.getCell('D').value && !row.getCell('O').value) {
-        rowNum++;
-        if (rowNum > 100) break; // Evitar loop infinito
-        continue;
-      }
-
-      // Se há valor na coluna A, é um título
-      if (cellA) {
-        currentTitulo = cellA;
-      }
-
-      // Se há valor na coluna D, é uma descrição
-      const descricao = row.getCell('D').value?.toString().trim();
-      const valorStr = row.getCell('O').value?.toString().trim();
-      
-      if (descricao && valorStr) {
-        const valor = parseFloat(valorStr.replace(/[^\d,-]/g, '').replace(',', '.')) || 0;
-        
-        dfcData.push({
-          cliente_id: cliente.id,
-          periodo_inicio: periodoInicio,
-          periodo_fim: periodoFim,
-          titulo: currentTitulo,
-          descricao: descricao,
-          valor: valor
-        });
-      }
-
-      rowNum++;
+    // Verificar se a célula da coluna A contém dados ou se chegou à linha final (DISPONIBILIDADES - NO FINAL DO PERÍODO)
+    const cellA = row.getCell('A').value?.toString().trim();
+    if (cellA === "DISPONIBILIDADES - NO FINAL DO PERÍODO") break; // Parar quando encontrar esse texto
+    
+    // Se não há mais dados em A, D ou O, parar o loop (evitar loop infinito)
+    if (!cellA && !row.getCell('D').value && !row.getCell('O').value) {
+      break; // Termina o loop se não houver dados
     }
 
-    if (dfcData.length === 0) {
-      throw new Error('Nenhum dado DFC encontrado na planilha');
+    // Se há valor na coluna A, é um título
+    const descricao = row.getCell('D').value?.toString().trim();  // Descrição da coluna D
+    const valorStr = row.getCell('O').value?.toString().trim();   // Valor da coluna O
+    
+    if (descricao && valorStr) {
+      const valor = parseFloat(valorStr.replace(/[^\d,-]/g, '').replace(',', '.')) || 0;
+
+      dfcData.push({
+        cliente_id: cliente.id,
+        periodo_inicio: periodoInicio,
+        periodo_fim: periodoFim,
+        descricao: descricao,
+        valor: valor
+      });
     }
 
-    // Deletar dados existentes do mesmo período
-    await supabase
-      .from('dfc')
-      .delete()
-      .eq('cliente_id', cliente.id)
-      .eq('periodo_inicio', periodoInicio)
-      .eq('periodo_fim', periodoFim);
+    rowNum++; // Próxima linha
+  }
 
-    // Inserir novos dados
-    const { error: insertError } = await supabase
-      .from('dfc')
-      .insert(dfcData);
+  if (dfcData.length === 0) {
+    throw new Error('Nenhum dado DFC encontrado na planilha');
+  }
 
-    if (insertError) {
-      throw new Error('Erro ao inserir dados DFC: ' + insertError.message);
-    }
+  // Deletar dados existentes do mesmo período
+  await supabase
+    .from('dfc')
+    .delete()
+    .eq('cliente_id', cliente.id)
+    .eq('periodo_inicio', periodoInicio)
+    .eq('periodo_fim', periodoFim);
 
-    return {
-      message: 'DFC importado com sucesso',
-      cliente: cliente.nome,
-      cnpj: cliente.cnpj,
-      periodo: periodoStr,
-      registros: dfcData.length,
-      tipo: 'dfc' as const
-    };
+  // Inserir novos dados
+  const { error: insertError } = await supabase
+    .from('dfc')
+    .insert(dfcData);
+
+  if (insertError) {
+    throw new Error('Erro ao inserir dados DFC: ' + insertError.message);
+  }
+
+  return {
+    message: 'DFC importado com sucesso',
+    cliente: cliente.nome,
+    cnpj: cliente.cnpj,
+    periodo: periodoStr,
+    registros: dfcData.length,
+    tipo: 'dfc' as const
   };
+};
+
 
   const handleUpload = async () => {
   if (!selectedFile) return;
