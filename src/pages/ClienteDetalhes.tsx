@@ -209,23 +209,6 @@ export default function ClienteDetalhes() {
     }).format(value);
   };
 
-  const formatCurrencyFromInt =(value: number) => {
-  // converter números para string
-  const strValue = value.toString();
-
-  // pegar a parte inteira com todos menos os últimos 2 dígitos
-  let reaisStr = strValue.slice(0, -2);
-
-  // centavos fixos "30"
-  const centavosStr = "30";
-
-  // formatar reais com ponto como separador de milhares
-  const reaisFormatados = reaisStr.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-
-  return `R$${reaisFormatados},${centavosStr}`;
-};
-
-
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('pt-BR');
   };
@@ -484,129 +467,127 @@ export default function ClienteDetalhes() {
 
       {/* Tabelas */}
       {activeTab === 'balancete' && (
-        <>
-          <div className="px-6 py-4 border-b">
-            <h3 className="text-lg font-semibold text-gray-900">Dados Detalhados - Balancetes</h3>
+        <div className="px-6 py-4 border-b">
+          <h3 className="text-lg font-semibold text-gray-900">Dados Detalhados - Balancetes</h3>
+        </div>
+
+        {balancetes.length === 0 ? (
+          <div className="text-center py-12">
+            <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <p className="text-gray-500">Nenhum balancete encontrado</p>
           </div>
-
-          {balancetes.length === 0 ? (
-            <div className="text-center py-12">
-              <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-500">Nenhum balancete encontrado</p>
-            </div>
-          ) : (
-            <>
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Código
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Descrição
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Classificação {/* Adiciona a coluna 'Classificação' */}
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Período
-                      </th>
-                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Saldo Anterior
-                      </th>
-                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Débito
-                      </th>
-                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Crédito
-                      </th>
-                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Saldo Atual
-                      </th>
+        ) : (
+          <>
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Código
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Descrição
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Classificação {/* Adiciona a coluna 'Classificação' */}
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Período
+                    </th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Saldo Anterior
+                    </th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Débito
+                    </th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Crédito
+                    </th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Saldo Atual
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {balancetes.map((balancete) => (
+                    <tr key={balancete.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm font-medium text-gray-900">
+                          {balancete.codigo}
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          {balancete.classificacao} {/* Exibe a classificação */}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="text-sm text-gray-900 max-w-xs truncate">
+                          {balancete.descricao_conta}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900">
+                          {balancete.classificacao} {/* Exibe a classificação */}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900">
+                          {formatDate(balancete.periodo_inicio)} - {formatDate(balancete.periodo_fim)}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right">
+                        <div className="text-sm text-gray-900">
+                          {formatCurrency(balancete.saldo_anterior)}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right">
+                        <div className="text-sm text-red-600">
+                          {formatCurrency(balancete.debito)}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right">
+                        <div className="text-sm text-green-600">
+                          {formatCurrency(balancete.credito)}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right">
+                        <div className={`text-sm font-medium ${balancete.saldo_atual >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          {formatCurrency(balancete.saldo_atual)}
+                        </div>
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {balancetes.map((balancete) => (
-                      <tr key={balancete.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-medium text-gray-900">
-                            {balancete.codigo}
-                          </div>
-                          <div className="text-sm text-gray-500">
-                            {balancete.classificacao} {/* Exibe a classificação */}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="text-sm text-gray-900 max-w-xs truncate">
-                            {balancete.descricao_conta}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900">
-                            {balancete.classificacao} {/* Exibe a classificação */}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900">
-                            {formatDate(balancete.periodo_inicio)} - {formatDate(balancete.periodo_fim)}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right">
-                          <div className="text-sm text-gray-900">
-                            {formatCurrency(balancete.saldo_anterior)}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right">
-                          <div className="text-sm text-red-600">
-                            {formatCurrency(balancete.debito)}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right">
-                          <div className="text-sm text-green-600">
-                            {formatCurrency(balancete.credito)}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right">
-                          <div className={`text-sm font-medium ${balancete.saldo_atual >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                            {formatCurrency(balancete.saldo_atual)}
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                  ))}
+                </tbody>
+              </table>
+            </div>
 
-              {/* Paginação */}
-              {totalPages > 1 && (
-                <div className="px-6 py-4 border-t">
-                  <div className="flex items-center justify-between">
-                    <div className="text-sm text-gray-700">
-                      Página {currentPage} de {totalPages}
-                    </div>
-                    <div className="flex space-x-2">
-                      <button
-                        onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                        disabled={currentPage === 1}
-                        className="px-3 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        Anterior
-                      </button>
-                      <button
-                        onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                        disabled={currentPage === totalPages}
-                        className="px-3 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        Próxima
-                      </button>
-                    </div>
+            {/* Paginação */}
+            {totalPages > 1 && (
+              <div className="px-6 py-4 border-t">
+                <div className="flex items-center justify-between">
+                  <div className="text-sm text-gray-700">
+                    Página {currentPage} de {totalPages}
+                  </div>
+                  <div className="flex space-x-2">
+                    <button
+                      onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                      disabled={currentPage === 1}
+                      className="px-3 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Anterior
+                    </button>
+                    <button
+                      onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                      disabled={currentPage === totalPages}
+                      className="px-3 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Próxima
+                    </button>
                   </div>
                 </div>
-              )}
-            </>
-          )}
-        </>
+              </div>
+            )}
+          </>
+        )}
       )}
 
       {/* Tabela DFC */}
@@ -660,7 +641,7 @@ export default function ClienteDetalhes() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right">
                         <div className={`text-sm font-medium ${item.valor >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                          {formatCurrencyFromInt(item.valor)}
+                          {(item.valor)}
                         </div>
                       </td>
                     </tr>
