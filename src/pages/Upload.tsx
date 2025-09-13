@@ -132,20 +132,27 @@ export default function Upload() {
 
     if (descricao && valorStr) {
       // Ajustar para converter valores como "179.487,30" para número
-      let valorLimpo = valorStr.replace(/[^\d,.-]/g, ''); // Remove caracteres não numéricos
-valorLimpo = valorLimpo.replace(/\./g, '').replace(',', '.'); // Remove pontos e troca vírgula por ponto
+     let valorLimpo = valorStr.replace(/[^\d,.-]/g, ''); // Remove caracteres não numéricos
+valorLimpo = valorLimpo.replace(/\./g, '').replace(',', '.');
 
-// Garantir que tenha duas casas decimais
+// Garante sempre duas casas decimais
 if (valorLimpo.includes('.')) {
   const partes = valorLimpo.split('.');
+  // Se só tem uma casa decimal, adiciona um zero
   if (partes[1].length === 1) {
     valorLimpo = partes[0] + '.' + partes[1] + '0';
   }
+  // Se não tem nenhuma casa decimal, adiciona ".00"
+  if (partes[1].length === 0) {
+    valorLimpo = partes[0] + '.00';
+  }
 } else {
-  valorLimpo = valorLimpo + '.00';
+  valorLimpo = valorLimpo + '.00'; // Para inteiros
 }
 
-const valorFormatado = (Number(valorLimpo)).toFixed(2); // Ex: "179487.30"
+// Converte e mantém como string com duas casas decimais antes de salvar
+const valorFormatado = Number(valorLimpo).toFixed(2);
+
 
       
       dfcData.push({
