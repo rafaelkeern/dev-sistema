@@ -220,7 +220,7 @@ export default function Upload() {
     if (uploadType === 'balancete') {
       cnpj = worksheet.getCell('G2').value?.toString().trim() || '';
     } else { // dfc
-      cnpj = worksheet.getCell('E3').value?.toString().trim() || '';
+      cnpj = worksheet.getCell('E2').value?.toString().trim() || '';
     }
     if (!cnpj) {
       throw new Error(`CNPJ não encontrado na célula ${uploadType === 'balancete' ? 'G2' : 'E3'}`);
