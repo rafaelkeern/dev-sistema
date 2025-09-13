@@ -131,18 +131,19 @@ export default function Upload() {
     const valorStr = row.getCell('O').value?.toString().trim();   // Valor da coluna O
 
     if (descricao && valorStr) {
-      const valorLimpo = valorStr.replace(/\./g, '').replace(',', '.');
-      const valor = parseFloat(valorLimpo) || 0;
+      // Ajustar para converter valores como "179.487,30" para número
+      const valorLimpo = valorStr.replace(/[^\d,.-]/g, ''); // Remove caracteres não numéricos
+      const valorFormatado = parseFloat(valorLimpo.replace('.', '').replace(',', '.')); // Corrige a formatação
+      
       dfcData.push({
         cliente_id: cliente.id,
         periodo_inicio: periodoInicio,
         periodo_fim: periodoFim,
         titulo: titulo,
         descricao: descricao,
-        valor: valor
+        valor: valorFormatado || 0  // Garantir que o valor seja 0 se não puder ser convertido
       });
     }
-
 
     rowNum++; // Próxima linha
   }
@@ -177,6 +178,7 @@ export default function Upload() {
     tipo: 'dfc' as const
   };
 };
+
 
 
   const handleUpload = async () => {
