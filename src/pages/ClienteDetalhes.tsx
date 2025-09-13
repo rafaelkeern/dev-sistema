@@ -209,6 +209,17 @@ export default function ClienteDetalhes() {
     }).format(value);
   };
 
+  const formatCurrencyFromInt = (value: number) => {
+  // Dividir por 100 para considerar os dois últimos dígitos como centavos
+  const valorDecimal = value / 100;
+
+  return new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL'
+  }).format(valorDecimal);
+};
+
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('pt-BR');
   };
@@ -643,7 +654,7 @@ export default function ClienteDetalhes() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right">
                         <div className={`text-sm font-medium ${item.valor >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                          {(item.valor)}
+                          {formatCurrency(item.valor)}
                         </div>
                       </td>
                     </tr>
