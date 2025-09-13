@@ -472,13 +472,12 @@ export default function ClienteDetalhes() {
         </div>
 
       {balancetes.length === 0 ? (
-          <div className="text-center py-12">
-            <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-500">Nenhum balancete encontrado</p>
-          </div>
-        ) : (
-          <>
-            <div className="overflow-x-auto">
+  <div className="text-center py-12">
+    <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+    <p className="text-gray-500">Nenhum balancete encontrado</p>
+  </div>
+) : (
+  <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
