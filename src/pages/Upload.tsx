@@ -128,22 +128,23 @@ export default function Upload() {
     // Capturar título da coluna A se existir
     const titulo = cellA || '';
     const descricao = row.getCell('D').value?.toString().trim();  // Descrição da coluna D
-    const valorStr = row.getCell('O').value?.toString().trim();   // Valor da coluna O
+    const valorStr = row.getCell('O').value?.toString().trim();
 
-    if (descricao && valorStr) {
-      // Ajustar para converter valores como "179.487,30" para número
-      const valorLimpo = valorStr.replace(/[^\d,.-]/g, ''); // Remove caracteres não numéricos
-      const valorFormatado = parseFloat(valorLimpo.replace('.', '').replace(',', '.')); // Corrige a formatação
-      
-      dfcData.push({
-        cliente_id: cliente.id,
-        periodo_inicio: periodoInicio,
-        periodo_fim: periodoFim,
-        titulo: titulo,
-        descricao: descricao,
-        valor: valorFormatado || 0  // Garantir que o valor seja 0 se não puder ser convertido
-      });
-    }
+if (descricao && valorStr) {
+  // Remove pontos (milhares) e substitui vírgula por ponto decimal
+  const valorLimpo = valorStr.replace(/\./g, '').replace(',', '.');
+  const valor = parseFloat(valorLimpo) || 0;
+
+  dfcData.push({
+    cliente_id: cliente.id,
+    periodo_inicio: periodoInicio,
+    periodo_fim: periodoFim,
+    titulo: titulo,
+    descricao: descricao,
+    valor: valor
+  });
+}
+
 
     rowNum++; // Próxima linha
   }
