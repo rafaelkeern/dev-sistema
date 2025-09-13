@@ -106,25 +106,31 @@ export default function Upload() {
     };
   };
 
-  const handleDFCUpload = async (workbook: any, cliente: any, periodoInicio: string, periodoFim: string, periodoStr: string) => {
+ const handleDFCUpload = async (workbook: any, cliente: any, periodoInicio: string, periodoFim: string, periodoStr: string) => {
   const worksheet = workbook.worksheets[0];
-  // Ler dados das linhas a partir da linha 7
   const dfcData = [];
   let rowNum = 7;
   let ordemAtual = 0;
   while (true) {
     const row = worksheet.getRow(rowNum);
     const cellA = row.getCell('A').value?.toString().trim();
+
     if (cellA === "DISPONIBILIDADES - NO FINAL DO PERÍODO") break;
-    const titulo = cellA || '';
-    const descricao = row.getCell('D').value?.toString().trim();
-    const valorStr = row.getCell('O').value?.toString().trim();
-    if (descricao && valorStr) {
+
+    // Não interromper só porque D e O estão vazios, para poder capturar títulos
+    if (!cellA) break; // interrompe se não há título (coluna A vazia)
+
+    const titulo = cellA;
+    const descricao = row.getCell('D').value?.toString().trim() || '';
+    const valorStr = row.getCell('O').value?.toString().trim() || '';
+
+    // Tratar valor, caso haja
+    let valorFormatado = 0;
+    if (valorStr) {
       let valorLimpo = valorStr.replace(/[^\d,.-]/g, '');
       if (valorLimpo.includes(',')) {
         valorLimpo = valorLimpo.replace(/\./g, '').replace(',', '.');
       }
-      // Garantir duas casas decimais
       if (valorLimpo.includes('.')) {
         const partes = valorLimpo.split('.');
         if (partes[1].length === 1) valorLimpo = partes[0] + '.' + partes[1] + '0';
@@ -132,36 +138,41 @@ export default function Upload() {
       } else {
         valorLimpo = valorLimpo + '.00';
       }
-      const valorFormatado = Number(valorLimpo);
-      dfcData.push({
-        cliente_id: cliente.id,
-        periodo_inicio: periodoInicio,
-        periodo_fim: periodoFim,
-        titulo: titulo,
-        descricao: descricao,
-        valor: valorFormatado,
-        ordem: ordemAtual // <- campo ordem garantido!
-      });
-      ordemAtual++;
+      valorFormatado = Number(valorLimpo);
     }
+
+    dfcData.push({
+      cliente_id: cliente.id,
+      periodo_inicio: periodoInicio,
+      periodo_fim: periodoFim,
+      titulo,
+      descricao,
+      valor: valorFormatado,
+      ordem: ordemAtual
+    });
+    ordemAtual++;
     rowNum++;
   }
+
   if (dfcData.length === 0) {
     throw new Error('Nenhum dado DFC encontrado na planilha');
   }
+
+  // Deletar dados antigos e inserir novos
   await supabase
     .from('dfc')
     .delete()
     .eq('cliente_id', cliente.id)
     .eq('periodo_inicio', periodoInicio)
     .eq('periodo_fim', periodoFim);
-  // Inserir novos dados
+
   const { error: insertError } = await supabase
     .from('dfc')
     .insert(dfcData);
   if (insertError) {
     throw new Error('Erro ao inserir dados DFC: ' + insertError.message);
   }
+
   return {
     message: 'DFC importado com sucesso',
     cliente: cliente.nome,
@@ -171,6 +182,7 @@ export default function Upload() {
     tipo: 'dfc' as const
   };
 };
+
 
 
 
