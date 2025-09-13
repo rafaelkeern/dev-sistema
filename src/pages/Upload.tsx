@@ -131,7 +131,8 @@ export default function Upload() {
     const valorStr = row.getCell('O').value?.toString().trim();   // Valor da coluna O
     
     if (descricao && valorStr) {
-      const valor = parseFloat(valorStr.replace(/[^\d,-]/g, '').replace(',', '.')) || 0;
+      const valorLimpo = valorStr.replace(/\./g, '').replace(',', '.');
+      const valor = parseFloat(valorLimpo) || 0;
 
       dfcData.push({
         cliente_id: cliente.id,
