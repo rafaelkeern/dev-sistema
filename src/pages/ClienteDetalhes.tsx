@@ -66,7 +66,7 @@ export default function ClienteDetalhes() {
     if (id) {
       fetchClienteDetalhes();
       fetchBalancetes();
-      fetchDFC();
+      // fetchDFC(); // Temporarily disabled due to missing dfc table
       fetchResumos();
     }
   }, [id]);
@@ -74,7 +74,7 @@ export default function ClienteDetalhes() {
   useEffect(() => {
     if (id) {
       fetchBalancetes();
-      fetchDFC();
+      // fetchDFC(); // Temporarily disabled due to missing dfc table
     }
   }, [currentPage, filtros]);
 
@@ -84,8 +84,7 @@ export default function ClienteDetalhes() {
         .from('clientes')
         .select(`
           *,
-          balancetes:balancetes(count),
-          dfc:dfc(count)
+          balancetes:balancetes(count)
         `)
         .eq('id', id)
         .single();
@@ -99,7 +98,7 @@ export default function ClienteDetalhes() {
         ...data,
         _count: {
           balancetes: data.balancetes?.[0]?.count || 0,
-          dfc: data.dfc?.[0]?.count || 0
+          dfc: 0
         }
       };
 
@@ -109,33 +108,33 @@ export default function ClienteDetalhes() {
     }
   };
 
-  const fetchDFC = async () => {
-    try {
-      let query = supabase
-        .from('dfc')
-        .select('*')
-        .eq('cliente_id', id)
-        .order('periodo_inicio', { ascending: true });
+  // const fetchDFC = async () => {
+  //   try {
+  //     let query = supabase
+  //       .from('dfc')
+  //       .select('*')
+  //       .eq('cliente_id', id)
+  //       .order('periodo_inicio', { ascending: true });
 
-      // Aplicar filtros de data
-      if (filtros.dataInicio) {
-        query = query.gte('periodo_inicio', filtros.dataInicio);
-      }
-      if (filtros.dataFim) {
-        query = query.lte('periodo_fim', filtros.dataFim);
-      }
+  //     // Aplicar filtros de data
+  //     if (filtros.dataInicio) {
+  //       query = query.gte('periodo_inicio', filtros.dataInicio);
+  //     }
+  //     if (filtros.dataFim) {
+  //       query = query.lte('periodo_fim', filtros.dataFim);
+  //     }
 
-      const { data, error } = await query;
+  //     const { data, error } = await query;
 
-      if (error) {
-        throw new Error('Erro ao carregar dados DFC');
-      }
+  //     if (error) {
+  //       throw new Error('Erro ao carregar dados DFC');
+  //     }
 
-      setDfcData(data || []);
-    } catch (err) {
-      console.error('Erro ao carregar DFC:', err);
-    }
-  };
+  //     setDfcData(data || []);
+  //   } catch (err) {
+  //     console.error('Erro ao carregar DFC:', err);
+  //   }
+  // };
 
   const fetchBalancetes = async () => {
   try {
