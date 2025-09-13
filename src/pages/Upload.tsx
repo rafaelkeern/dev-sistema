@@ -125,7 +125,8 @@ export default function Upload() {
       break; // Termina o loop se não houver dados
     }
 
-    // Se há valor na coluna A, é um título
+    // Capturar título da coluna A se existir
+    const titulo = cellA || '';
     const descricao = row.getCell('D').value?.toString().trim();  // Descrição da coluna D
     const valorStr = row.getCell('O').value?.toString().trim();   // Valor da coluna O
     
@@ -136,6 +137,7 @@ export default function Upload() {
         cliente_id: cliente.id,
         periodo_inicio: periodoInicio,
         periodo_fim: periodoFim,
+        titulo: titulo,
         descricao: descricao,
         valor: valor
       });

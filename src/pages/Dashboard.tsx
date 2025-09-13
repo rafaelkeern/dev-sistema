@@ -46,6 +46,9 @@ export default function Dashboard() {
         cnpj,
         balancetes (
           updated_at
+        ),
+        dfc (
+          updated_at
         )
       `)
       .order('nome');
@@ -67,12 +70,18 @@ export default function Dashboard() {
       // O número de períodos distintos é o tamanho do Set
       const balancetesCount = uniquePeriods.size;
 
-      // Temporariamente definir DFC count como 0 até resolver problema da tabela
-      const dfcCount = 0;
+      // Agrupar DFC por períodos distintos
+      const uniqueDfcPeriods = new Set<string>();
+      cliente.dfc?.forEach((dfc: any) => {
+        const periodo = `${dfc.updated_at}`;
+        uniqueDfcPeriods.add(periodo);
+      });
+      const dfcCount = uniqueDfcPeriods.size;
 
       // Usar updated_at mais recente para última importação
       const allUpdates = [
-        ...(cliente.balancetes || [])
+        ...(cliente.balancetes || []),
+        ...(cliente.dfc || [])
       ];
       
       const ultimaImportacao = allUpdates.length
@@ -110,8 +119,15 @@ export default function Dashboard() {
 
     const totalBalancetes = uniquePeriodsGlobal.size; // Total de períodos distintos
 
-    // Temporariamente definir total DFC como 0 até resolver problema da tabela
-    const totalDFC = 0;
+    // Calcular o total de DFC
+    const uniqueDfcPeriodsGlobal = new Set<string>();
+    processedClientes.forEach(cliente => {
+      cliente.dfc?.forEach((dfc: any) => {
+        const periodo = `${dfc.updated_at}`;
+        uniqueDfcPeriodsGlobal.add(periodo);
+      });
+    });
+    const totalDFC = uniqueDfcPeriodsGlobal.size;
 
     const clientesComDados = processedClientes.filter(
       (cliente) => cliente._count.balancetes > 0 || cliente._count.dfc > 0
