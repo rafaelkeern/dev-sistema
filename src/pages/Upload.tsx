@@ -125,22 +125,32 @@ export default function Upload() {
 
     if (descricao && valorStr) {
       let valorLimpo = valorStr.replace(/[^\d,.-]/g, ''); // Remove caracteres não numéricos
-      valorLimpo = valorLimpo.replace(/\./g, '').replace(',', '.'); // Remove pontos e troca vírgula por ponto
+      let valorLimpo = valorStr.replace(/[^\d,.-]/g, ''); // Remove caracteres não numéricos exceto vírgula, ponto e sinal
 
-      // Garantir que tenha duas casas decimais
-      if (valorLimpo.includes('.')) {
-        const partes = valorLimpo.split('.');
-        if (partes[1].length === 1) {
-          valorLimpo = partes[0] + '.' + partes[1] + '0';
-        }
-        if (partes[1].length === 0) {
-          valorLimpo = partes[0] + '.00';
-        }
-      } else {
-        valorLimpo = valorLimpo + '.00';
-      }
+// Se tem vírgula, é formato brasileiro (1.234,56)
+if (valorLimpo.includes(',')) {
+  valorLimpo = valorLimpo.replace(/\./g, '').replace(',', '.'); // Remove milhares e troca vírgula por ponto
+} else {
+  // Se não tem vírgula, mantém o formato (ex: 179487.3)
+  // Não remove ponto porque é decimal
+  // só remove espaços, que já foi feito acima
+}
 
-      const valorFormatado = Number(valorLimpo).toFixed(2);
+// Garantir duas casas decimais
+if (valorLimpo.includes('.')) {
+  const partes = valorLimpo.split('.');
+  if (partes[1].length === 1) {
+    valorLimpo = partes[0] + '.' + partes[1] + '0';
+  }
+  if (partes[1].length === 0) {
+    valorLimpo = partes[0] + '.00';
+  }
+} else {
+  valorLimpo = valorLimpo + '.00';
+}
+
+const valorFormatado = Number(valorLimpo).toFixed(2);
+
 
       // Log para diagnóstico: valor bruto, valor limpo e valor formatado
       console.log(`Linha ${rowNum}: valorStr="${valorStr}", valorLimpo="${valorLimpo}", valorFormatado="${valorFormatado}"`);
