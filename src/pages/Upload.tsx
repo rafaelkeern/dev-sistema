@@ -215,12 +215,17 @@ export default function Upload() {
     }
 
     // Ler CNPJ da célula G2
-    const cnpjCell = worksheet.getCell('G2');
-    const cnpj = cnpjCell.value?.toString().trim();
-
-    if (!cnpj) {
-      throw new Error('CNPJ não encontrado na célula G2');
+    // Ler CNPJ conforme tipo de upload
+    let cnpj = '';
+    if (uploadType === 'balancete') {
+      cnpj = worksheet.getCell('G2').value?.toString().trim() || '';
+    } else { // dfc
+      cnpj = worksheet.getCell('E3').value?.toString().trim() || '';
     }
+    if (!cnpj) {
+      throw new Error(`CNPJ não encontrado na célula ${uploadType === 'balancete' ? 'G2' : 'E3'}`);
+    }
+
 
     // Verificar se cliente existe
     const { data: cliente, error: clienteError } = await supabase
