@@ -110,7 +110,8 @@ export default function Upload() {
   const worksheet = workbook.worksheets[0];
   // Ler dados das linhas a partir da linha 7
   const dfcData = [];
-let rowNum = 7;
+  let rowNum = 7;
+  let ordemAtual = 0;
 while (true) {
   const row = worksheet.getRow(rowNum);
   const cellA = row.getCell('A').value?.toString().trim();
