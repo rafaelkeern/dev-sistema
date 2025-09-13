@@ -145,7 +145,7 @@ if (valorLimpo.includes('.')) {
   valorLimpo = valorLimpo + '.00';
 }
 
-const valorFormatado = parseFloat(valorLimpo) || 0;
+const valorFormatado = (Number(valorLimpo)).toFixed(2); // Ex: "179487.30"
 
       
       dfcData.push({
@@ -154,7 +154,7 @@ const valorFormatado = parseFloat(valorLimpo) || 0;
         periodo_fim: periodoFim,
         titulo: titulo,
         descricao: descricao,
-        valor: valorFormatado || 0  // Garantir que o valor seja 0 se não puder ser convertido
+        valor: valorFormatado
       });
     }
 
