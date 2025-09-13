@@ -128,25 +128,36 @@ export default function Upload() {
     // Capturar título da coluna A se existir
     const titulo = cellA || '';
     const descricao = row.getCell('D').value?.toString().trim();  // Descrição da coluna D
-    const valorStr = row.getCell('O').value?.toString().trim();
+    const valorStr = row.getCell('O').value?.toString().trim();   // Valor da coluna O
 
-if (descricao && valorStr) {
-  // Remove pontos dos milhares e troca vírgula por ponto
-  const valorLimpo = valorStr.replace(/\./g, '').replace(',', '.');
+    if (descricao && valorStr) {
+      // Ajustar para converter valores como "179.487,30" para número
+      let valorLimpo = valorStr.replace(/[^\d,.-]/g, ''); // Remove caracteres não numéricos
+valorLimpo = valorLimpo.replace(/\./g, '').replace(',', '.'); // Remove pontos e troca vírgula por ponto
 
-  // Força duas casas decimais usando toFixed
-  const valor = Number.parseFloat(valorLimpo).toFixed(2);
-
-  dfcData.push({
-    cliente_id: cliente.id,
-    periodo_inicio: periodoInicio,
-    periodo_fim: periodoFim,
-    titulo: titulo,
-    descricao: descricao,
-    valor: valor // valor agora é string "179487.30"
-  });
+// Garantir que tenha 2 casas decimais: se após o ponto decimal tiver só 1 dígito, acrescenta o zero
+if (valorLimpo.includes('.')) {
+  const partes = valorLimpo.split('.');
+  if (partes[1].length === 1) {
+    valorLimpo = partes[0] + '.' + partes[1] + '0';
+  }
+} else {
+  // Se não tiver decimal, acrescenta '.00'
+  valorLimpo = valorLimpo + '.00';
 }
 
+const valorFormatado = parseFloat(valorLimpo) || 0;
+
+      
+      dfcData.push({
+        cliente_id: cliente.id,
+        periodo_inicio: periodoInicio,
+        periodo_fim: periodoFim,
+        titulo: titulo,
+        descricao: descricao,
+        valor: valorFormatado || 0  // Garantir que o valor seja 0 se não puder ser convertido
+      });
+    }
 
     rowNum++; // Próxima linha
   }
