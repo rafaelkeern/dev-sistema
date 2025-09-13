@@ -238,13 +238,17 @@ export default function Upload() {
       throw new Error(`Cliente com CNPJ ${cnpj} não encontrado. Cadastre o cliente primeiro.`);
     }
 
-    // Ler período da célula G3
-    const periodoCell = worksheet.getCell('G3');
-    const periodoStr = periodoCell.value?.toString().trim();
-
-    if (!periodoStr) {
-      throw new Error('Período não encontrado na célula G3');
+   // Ler período conforme tipo de upload
+    let periodoStr = '';
+    if (uploadType === 'balancete') {
+      periodoStr = worksheet.getCell('G3').value?.toString().trim() || '';
+    } else { // dfc
+      periodoStr = worksheet.getCell('E3').value?.toString().trim() || '';
     }
+    if (!periodoStr) {
+      throw new Error(`Período não encontrado na célula ${uploadType === 'balancete' ? 'G3' : 'E3'}`);
+    }
+
 
     // Imprimir o valor do período para diagnóstico
     console.log('Valor do período:', periodoStr);
