@@ -108,70 +108,57 @@ export default function Upload() {
 
   const handleDFCUpload = async (workbook: any, cliente: any, periodoInicio: string, periodoFim: string, periodoStr: string) => {
   const worksheet = workbook.worksheets[0];
-
   // Ler dados das linhas a partir da linha 7
   const dfcData = [];
   let rowNum = 7;
-
   while (true) {
     const row = worksheet.getRow(rowNum);
-    
-    // Verificar se a célula da coluna A contém dados ou se chegou à linha final (DISPONIBILIDADES - NO FINAL DO PERÍODO)
-    const cellA = row.getCell('A').value?.toString().trim();
-    if (cellA === "DISPONIBILIDADES - NO FINAL DO PERÍODO") break; // Parar quando encontrar esse texto
-    
-    // Se não há mais dados em A, D ou O, parar o loop (evitar loop infinito)
-    if (!cellA && !row.getCell('D').value && !row.getCell('O').value) {
-      break; // Termina o loop se não houver dados
-    }
 
-    // Capturar título da coluna A se existir
+    const cellA = row.getCell('A').value?.toString().trim();
+    if (cellA === "DISPONIBILIDADES - NO FINAL DO PERÍODO") break;
+
+    if (!cellA && !row.getCell('D').value && !row.getCell('O').value) break;
+
     const titulo = cellA || '';
-    const descricao = row.getCell('D').value?.toString().trim();  // Descrição da coluna D
-    const valorStr = row.getCell('O').value?.toString().trim();   // Valor da coluna O
+    const descricao = row.getCell('D').value?.toString().trim();
+    const valorStr = row.getCell('O').value?.toString().trim();
 
     if (descricao && valorStr) {
-      // Ajustar para converter valores como "179.487,30" para número
-     let valorLimpo = valorStr.replace(/[^\d,.-]/g, ''); // Remove caracteres não numéricos
-valorLimpo = valorLimpo.replace(/\./g, '').replace(',', '.');
+      let valorLimpo = valorStr.replace(/[^\d,.-]/g, ''); // Remove caracteres não numéricos
+      valorLimpo = valorLimpo.replace(/\./g, '').replace(',', '.'); // Remove pontos e troca vírgula por ponto
 
-// Garante sempre duas casas decimais
-if (valorLimpo.includes('.')) {
-  const partes = valorLimpo.split('.');
-  // Se só tem uma casa decimal, adiciona um zero
-  if (partes[1].length === 1) {
-    valorLimpo = partes[0] + '.' + partes[1] + '0';
-  }
-  // Se não tem nenhuma casa decimal, adiciona ".00"
-  if (partes[1].length === 0) {
-    valorLimpo = partes[0] + '.00';
-  }
-} else {
-  valorLimpo = valorLimpo + '.00'; // Para inteiros
-}
+      // Garantir que tenha duas casas decimais
+      if (valorLimpo.includes('.')) {
+        const partes = valorLimpo.split('.');
+        if (partes[1].length === 1) {
+          valorLimpo = partes[0] + '.' + partes[1] + '0';
+        }
+        if (partes[1].length === 0) {
+          valorLimpo = partes[0] + '.00';
+        }
+      } else {
+        valorLimpo = valorLimpo + '.00';
+      }
 
-// Converte e mantém como string com duas casas decimais antes de salvar
-const valorFormatado = Number(valorLimpo).toFixed(2);
+      const valorFormatado = Number(valorLimpo).toFixed(2);
 
+      // Log para diagnóstico: valor bruto, valor limpo e valor formatado
+      console.log(`Linha ${rowNum}: valorStr="${valorStr}", valorLimpo="${valorLimpo}", valorFormatado="${valorFormatado}"`);
 
-      
       dfcData.push({
         cliente_id: cliente.id,
         periodo_inicio: periodoInicio,
         periodo_fim: periodoFim,
         titulo: titulo,
         descricao: descricao,
-        valor: valorFormatado
+        valor: valorFormatado || '0.00'
       });
     }
-
-    rowNum++; // Próxima linha
+    rowNum++;
   }
-
   if (dfcData.length === 0) {
     throw new Error('Nenhum dado DFC encontrado na planilha');
   }
-
   // Deletar dados existentes do mesmo período
   await supabase
     .from('dfc')
@@ -179,16 +166,13 @@ const valorFormatado = Number(valorLimpo).toFixed(2);
     .eq('cliente_id', cliente.id)
     .eq('periodo_inicio', periodoInicio)
     .eq('periodo_fim', periodoFim);
-
   // Inserir novos dados
   const { error: insertError } = await supabase
     .from('dfc')
     .insert(dfcData);
-
   if (insertError) {
     throw new Error('Erro ao inserir dados DFC: ' + insertError.message);
   }
-
   return {
     message: 'DFC importado com sucesso',
     cliente: cliente.nome,
