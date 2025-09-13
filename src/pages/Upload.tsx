@@ -111,63 +111,45 @@ export default function Upload() {
   // Ler dados das linhas a partir da linha 7
   const dfcData = [];
   let rowNum = 7;
+  let ordemAtual = 0;
   while (true) {
     const row = worksheet.getRow(rowNum);
-
     const cellA = row.getCell('A').value?.toString().trim();
     if (cellA === "DISPONIBILIDADES - NO FINAL DO PERÍODO") break;
-
     if (!cellA && !row.getCell('D').value && !row.getCell('O').value) break;
-
     const titulo = cellA || '';
     const descricao = row.getCell('D').value?.toString().trim();
     const valorStr = row.getCell('O').value?.toString().trim();
-
     if (descricao && valorStr) {
-      let valorLimpo = valorStr.replace(/[^\d,.-]/g, ''); // Remove caracteres não numéricos exceto vírgula, ponto e sinal
-
-// Se tem vírgula, é formato brasileiro (1.234,56)
-if (valorLimpo.includes(',')) {
-  valorLimpo = valorLimpo.replace(/\./g, '').replace(',', '.'); // Remove milhares e troca vírgula por ponto
-} else {
-  // Se não tem vírgula, mantém o formato (ex: 179487.3)
-  // Não remove ponto porque é decimal
-  // só remove espaços, que já foi feito acima
-}
-
-// Garantir duas casas decimais
-if (valorLimpo.includes('.')) {
-  const partes = valorLimpo.split('.');
-  if (partes[1].length === 1) {
-    valorLimpo = partes[0] + '.' + partes[1] + '0';
-  }
-  if (partes[1].length === 0) {
-    valorLimpo = partes[0] + '.00';
-  }
-} else {
-  valorLimpo = valorLimpo + '.00';
-}
-
-const valorFormatado = Number(valorLimpo).toFixed(2);
-
-      // Log para diagnóstico: valor bruto, valor limpo e valor formatado
-      console.log(`Linha ${rowNum}: valorStr="${valorStr}", valorLimpo="${valorLimpo}", valorFormatado="${valorFormatado}"`);
-
+      let valorLimpo = valorStr.replace(/[^\d,.-]/g, '');
+      if (valorLimpo.includes(',')) {
+        valorLimpo = valorLimpo.replace(/\./g, '').replace(',', '.');
+      }
+      // Garantir duas casas decimais
+      if (valorLimpo.includes('.')) {
+        const partes = valorLimpo.split('.');
+        if (partes[1].length === 1) valorLimpo = partes[0] + '.' + partes[1] + '0';
+        if (partes[1].length === 0) valorLimpo = partes[0] + '.00';
+      } else {
+        valorLimpo = valorLimpo + '.00';
+      }
+      const valorFormatado = Number(valorLimpo);
       dfcData.push({
         cliente_id: cliente.id,
         periodo_inicio: periodoInicio,
         periodo_fim: periodoFim,
         titulo: titulo,
         descricao: descricao,
-        valor: valorFormatado || '0.00'
+        valor: valorFormatado,
+        ordem: ordemAtual // <- campo ordem garantido!
       });
+      ordemAtual++;
     }
     rowNum++;
   }
   if (dfcData.length === 0) {
     throw new Error('Nenhum dado DFC encontrado na planilha');
   }
-  // Deletar dados existentes do mesmo período
   await supabase
     .from('dfc')
     .delete()
@@ -190,6 +172,7 @@ const valorFormatado = Number(valorLimpo).toFixed(2);
     tipo: 'dfc' as const
   };
 };
+
 
 
 
