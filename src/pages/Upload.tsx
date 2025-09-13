@@ -124,7 +124,6 @@ export default function Upload() {
     const valorStr = row.getCell('O').value?.toString().trim();
 
     if (descricao && valorStr) {
-      let valorLimpo = valorStr.replace(/[^\d,.-]/g, ''); // Remove caracteres não numéricos
       let valorLimpo = valorStr.replace(/[^\d,.-]/g, ''); // Remove caracteres não numéricos exceto vírgula, ponto e sinal
 
 // Se tem vírgula, é formato brasileiro (1.234,56)
@@ -150,7 +149,6 @@ if (valorLimpo.includes('.')) {
 }
 
 const valorFormatado = Number(valorLimpo).toFixed(2);
-
 
       // Log para diagnóstico: valor bruto, valor limpo e valor formatado
       console.log(`Linha ${rowNum}: valorStr="${valorStr}", valorLimpo="${valorLimpo}", valorFormatado="${valorFormatado}"`);
