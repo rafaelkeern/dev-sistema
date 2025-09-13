@@ -110,13 +110,13 @@ export default function Upload() {
   const worksheet = workbook.worksheets[0];
   // Ler dados das linhas a partir da linha 7
   const dfcData = [];
-  let rowNum = 6;
-  let ordemAtual = 0;
-  while (true) {
-    const row = worksheet.getRow(rowNum);
-    const cellA = row.getCell('A').value?.toString().trim();
-    if (cellA === "DISPONIBILIDADES - NO FINAL DO PERÍODO") break;
-    if (!cellA && !row.getCell('D').value && !row.getCell('O').value) break;
+let rowNum = 7;
+while (true) {
+  const row = worksheet.getRow(rowNum);
+  const cellA = row.getCell('A').value?.toString().trim();
+  
+  if (cellA === "DISPONIBILIDADES - NO FINAL DO PERÍODO") break;  
+  if (!cellA && !row.getCell('D').value && !row.getCell('O').value) break;
     const titulo = cellA || '';
     const descricao = row.getCell('D').value?.toString().trim();
     const valorStr = row.getCell('O').value?.toString().trim();
