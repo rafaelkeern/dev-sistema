@@ -210,17 +210,19 @@ export default function ClienteDetalhes() {
   };
 
   const formatCurrencyFromInt =(value: number) => {
-  // Transformar número em string
+  // converter números para string
   const strValue = value.toString();
 
-  // Separar parte dos reais e dos centavos
-  const reais = strValue.slice(0, -2) || '0';
-  const centavos = strValue.slice(-2);
+  // pegar a parte inteira com todos menos os últimos 2 dígitos
+  let reaisStr = strValue.slice(0, -2);
 
-  // Formatar os reais com separadores de milhar
-  const reaisFormatados = reais.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  // centavos fixos "30"
+  const centavosStr = "30";
 
-  return `R$${reaisFormatados},${centavos}`;
+  // formatar reais com ponto como separador de milhares
+  const reaisFormatados = reaisStr.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+
+  return `R$${reaisFormatados},${centavosStr}`;
 };
 
 
