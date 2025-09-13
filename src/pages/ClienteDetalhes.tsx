@@ -471,7 +471,7 @@ export default function ClienteDetalhes() {
           <h3 className="text-lg font-semibold text-gray-900">Dados Detalhados - Balancetes</h3>
         </div>
 
-        {balancetes.length === 0 ? (
+      {balancetes.length === 0 ? (
           <div className="text-center py-12">
             <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
             <p className="text-gray-500">Nenhum balancete encontrado</p>
@@ -641,7 +641,7 @@ export default function ClienteDetalhes() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right">
                         <div className={`text-sm font-medium ${item.valor >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                          {(item.valor)}
+                          {formatCurrency(item.valor)}
                         </div>
                       </td>
                     </tr>
