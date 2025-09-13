@@ -209,21 +209,6 @@ export default function ClienteDetalhes() {
     }).format(value);
   };
 
-  const formatCurrencyDFC = (value: number) => {
-  // Garante que valores negativos sejam formatados corretamente com o sinal de negativo
-  const formattedValue = new Intl.NumberFormat('pt-BR', {
-    style: 'currency',
-    currency: 'BRL',
-  }).format(value);
-
-  // Se o valor for negativo, adicionar o sinal de negativo manualmente (caso não apareça)
-  if (value < 0) {
-    return `-${formattedValue.replace('R$', '')}`;  // Remove "R$" e adiciona novamente com o sinal
-  }
-  
-  return formattedValue;
-};
-
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('pt-BR');
   };
@@ -654,7 +639,7 @@ export default function ClienteDetalhes() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right">
                           <div className={`text-sm font-medium ${item.valor >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                            {formatCurrencyDFC(item.valor)}
+                            {(item.valor)}
                           </div>
                         </td>
                       </tr>
