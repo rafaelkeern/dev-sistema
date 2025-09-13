@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Calendar, TrendingUp, Filter, BarChart3, FileText, Activity } from 'lucide-react';
+import { ArrowLeft, Calendar, TrendingUp, Filter, BarChart3, FileText, Activity, Trash2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
@@ -58,6 +58,7 @@ export default function ClienteDetalhes() {
   const [error, setError] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [deletingPeriod, setDeletingPeriod] = useState<string | null>(null);
   const [filtros, setFiltros] = useState({
     dataInicio: '',
     dataFim: ''
@@ -218,6 +219,70 @@ export default function ClienteDetalhes() {
     setFiltros(prev => ({ ...prev, [field]: value }));
     setCurrentPage(1);
   };
+
+  const handleDeletePeriod = async (periodoInicio: string, periodoFim: string) => {
+    const periodoKey = `${periodoInicio}-${periodoFim}`;
+    
+    if (!confirm(`Tem certeza que deseja excluir todos os balancetes do período ${formatDate(periodoInicio)} - ${formatDate(periodoFim)}?`)) {
+      return;
+    }
+
+    setDeletingPeriod(periodoKey);
+    
+    try {
+      const { error } = await supabase
+        .from('balancetes')
+        .delete()
+        .eq('cliente_id', id)
+        .eq('periodo_inicio', periodoInicio)
+        .eq('periodo_fim', periodoFim);
+
+      if (error) {
+        throw new Error('Erro ao excluir balancetes: ' + error.message);
+      }
+
+      // Recarregar dados
+      await fetchClienteDetalhes();
+      await fetchBalancetes();
+      await fetchResumos();
+      
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erro ao excluir período');
+    } finally {
+      setDeletingPeriod(null);
+    }
+  };
+
+  // Agrupar balancetes por período para mostrar resumo
+  const balancetesPorPeriodo = balancetes.reduce((acc, balancete) => {
+    const periodoKey = `${balancete.periodo_inicio}-${balancete.periodo_fim}`;
+    if (!acc[periodoKey]) {
+      acc[periodoKey] = {
+        periodo_inicio: balancete.periodo_inicio,
+        periodo_fim: balancete.periodo_fim,
+        count: 0,
+        total_debito: 0,
+        total_credito: 0,
+        total_saldo_atual: 0
+      };
+    }
+    acc[periodoKey].count++;
+    acc[periodoKey].total_debito += balancete.debito;
+    acc[periodoKey].total_credito += balancete.credito;
+    acc[periodoKey].total_saldo_atual += balancete.saldo_atual;
+    return acc;
+  }, {} as Record<string, {
+    periodo_inicio: string;
+    periodo_fim: string;
+    count: number;
+    total_debito: number;
+    total_credito: number;
+    total_saldo_atual: number;
+  }>);
+
+  const periodosResumo = Object.values(balancetesPorPeriodo).sort((a, b) => 
+    new Date(b.periodo_inicio).getTime() - new Date(a.periodo_inicio).getTime()
+  );
 
   if (loading) {
     return <LoadingSpinner text="Carregando detalhes do cliente..." />;
@@ -469,6 +534,94 @@ export default function ClienteDetalhes() {
       {/* Tabelas */}
       {activeTab === 'balancete' && (
         <>
+          {/* Resumo por Período */}
+          <div className="px-6 py-4 border-b">
+            <h3 className="text-lg font-semibold text-gray-900">Resumo por Período</h3>
+          </div>
+          {periodosResumo.length === 0 ? (
+            <div className="text-center py-12">
+              <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-500">Nenhum período encontrado</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto mb-6">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Período
+                    </th>
+                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Registros
+                    </th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Total Débito
+                    </th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Total Crédito
+                    </th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Saldo Total
+                    </th>
+                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Ações
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {periodosResumo.map((periodo) => {
+                    const periodoKey = `${periodo.periodo_inicio}-${periodo.periodo_fim}`;
+                    const isDeleting = deletingPeriod === periodoKey;
+                    
+                    return (
+                      <tr key={periodoKey} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-medium text-gray-900">
+                            {formatDate(periodo.periodo_inicio)} - {formatDate(periodo.periodo_fim)}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-center">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                            {periodo.count}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right">
+                          <div className="text-sm text-red-600">
+                            {formatCurrency(periodo.total_debito)}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right">
+                          <div className="text-sm text-green-600">
+                            {formatCurrency(periodo.total_credito)}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right">
+                          <div className={`text-sm font-medium ${periodo.total_saldo_atual >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            {formatCurrency(periodo.total_saldo_atual)}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-center">
+                          <button
+                            onClick={() => handleDeletePeriod(periodo.periodo_inicio, periodo.periodo_fim)}
+                            disabled={isDeleting}
+                            className="text-red-600 hover:text-red-900 disabled:opacity-50 disabled:cursor-not-allowed"
+                            title="Excluir período"
+                          >
+                            {isDeleting ? (
+                              <LoadingSpinner size="sm" />
+                            ) : (
+                              <Trash2 className="h-4 w-4" />
+                            )}
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+
           <div className="px-6 py-4 border-b">
             <h3 className="text-lg font-semibold text-gray-900">Dados Detalhados - Balancetes</h3>
           </div>
