@@ -46,9 +46,6 @@ export default function Dashboard() {
         cnpj,
         balancetes (
           updated_at
-        ),
-        dfc (
-          updated_at
         )
       `)
       .order('nome');
@@ -70,23 +67,17 @@ export default function Dashboard() {
       // O número de períodos distintos é o tamanho do Set
       const balancetesCount = uniquePeriods.size;
 
-      // Processar DFC da mesma forma
-      const uniqueDFCPeriods = new Set<string>();
-      cliente.dfc?.forEach((dfc: any) => {
-        const periodo = `${dfc.updated_at}`;
-        uniqueDFCPeriods.add(periodo);
-      });
-      const dfcCount = uniqueDFCPeriods.size;
+      // Temporariamente definir DFC count como 0 até resolver problema da tabela
+      const dfcCount = 0;
 
       // Usar updated_at mais recente para última importação
       const allUpdates = [
-        ...(cliente.balancetes || []),
-        ...(cliente.dfc || [])
+        ...(cliente.balancetes || [])
       ];
       
       const ultimaImportacao = allUpdates.length
         ? allUpdates.reduce((latest: string, item: any) => {
-            if (!latest) return balancete.updated_at;
+            if (!latest) return item.updated_at;
             return new Date(item.updated_at) > new Date(latest)
               ? item.updated_at
               : latest;
@@ -119,15 +110,8 @@ export default function Dashboard() {
 
     const totalBalancetes = uniquePeriodsGlobal.size; // Total de períodos distintos
 
-    // Calcular o total de DFC
-    const uniqueDFCPeriodsGlobal = new Set<string>();
-    processedClientes.forEach(cliente => {
-      cliente.dfc?.forEach((dfc: any) => {
-        const periodo = `${dfc.updated_at}`;
-        uniqueDFCPeriodsGlobal.add(periodo);
-      });
-    });
-    const totalDFC = uniqueDFCPeriodsGlobal.size;
+    // Temporariamente definir total DFC como 0 até resolver problema da tabela
+    const totalDFC = 0;
 
     const clientesComDados = processedClientes.filter(
       (cliente) => cliente._count.balancetes > 0 || cliente._count.dfc > 0
