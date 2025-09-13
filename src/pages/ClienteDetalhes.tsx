@@ -211,6 +211,7 @@ export default function ClienteDetalhes() {
 
   const formatCurrencyFromInt = (value: number) => {
   // Dividir por 100 para considerar os dois últimos dígitos como centavos
+  const valorDecimal = value;
 
   return new Intl.NumberFormat('pt-BR', {
     style: 'currency',
