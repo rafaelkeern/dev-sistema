@@ -186,12 +186,28 @@ export default function Upload() {
   setResult(null);
 
   try {
+    // Verificar se o arquivo é válido
+    if (!selectedFile.name.match(/\.(xlsx|xls)$/i)) {
+      throw new Error('Formato de arquivo inválido. Use apenas arquivos .xlsx ou .xls');
+    }
+
     // Processar arquivo Excel no frontend
     const ExcelJS = await import('exceljs');
     const workbook = new ExcelJS.Workbook();
     
-    const arrayBuffer = await selectedFile.arrayBuffer();
-    await workbook.xlsx.load(arrayBuffer);
+    try {
+      const arrayBuffer = await selectedFile.arrayBuffer();
+      
+      // Verificar se o arrayBuffer não está vazio
+      if (arrayBuffer.byteLength === 0) {
+        throw new Error('Arquivo está vazio ou corrompido');
+      }
+      
+      await workbook.xlsx.load(arrayBuffer);
+    } catch (excelError) {
+      console.error('Erro ao processar Excel:', excelError);
+      throw new Error('Erro ao processar arquivo Excel. Verifique se o arquivo não está corrompido e tente novamente.');
+    }
     
     const worksheet = workbook.worksheets[0];
     if (!worksheet) {
