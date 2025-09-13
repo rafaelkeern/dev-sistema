@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Calendar, TrendingUp, Filter, BarChart3 } from 'lucide-react';
+import { ArrowLeft, Calendar, TrendingUp, Filter, BarChart3, FileText, Activity } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import LoadingSpinner from '../components/LoadingSpinner';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
 
 interface Cliente {
   id: number;
@@ -11,6 +11,7 @@ interface Cliente {
   cnpj: string;
   _count: {
     balancetes: number;
+    dfc: number;
   };
 }
 
@@ -36,10 +37,21 @@ interface ResumoPerido {
   saldo_atual: number;
 }
 
+interface DFC {
+  id: number;
+  titulo: string;
+  descricao: string;
+  valor: number;
+  periodo_inicio: string;
+  periodo_fim: string;
+}
+
 export default function ClienteDetalhes() {
   const { id } = useParams<{ id: string }>();
   const [cliente, setCliente] = useState<Cliente | null>(null);
+  const [activeTab, setActiveTab] = useState<'balancete' | 'dfc'>('balancete');
   const [balancetes, setBalancetes] = useState<Balancete[]>([]);
+  const [dfcData, setDfcData] = useState<DFC[]>([]);
   const [resumos, setResumos] = useState<ResumoPerido[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -54,6 +66,7 @@ export default function ClienteDetalhes() {
     if (id) {
       fetchClienteDetalhes();
       fetchBalancetes();
+      fetchDFC();
       fetchResumos();
     }
   }, [id]);
@@ -61,6 +74,7 @@ export default function ClienteDetalhes() {
   useEffect(() => {
     if (id) {
       fetchBalancetes();
+      fetchDFC();
     }
   }, [currentPage, filtros]);
 
@@ -70,7 +84,8 @@ export default function ClienteDetalhes() {
         .from('clientes')
         .select(`
           *,
-          balancetes:balancetes(count)
+          balancetes:balancetes(count),
+          dfc:dfc(count)
         `)
         .eq('id', id)
         .single();
@@ -83,13 +98,42 @@ export default function ClienteDetalhes() {
       const processedCliente = {
         ...data,
         _count: {
-          balancetes: data.balancetes?.[0]?.count || 0
+          balancetes: data.balancetes?.[0]?.count || 0,
+          dfc: data.dfc?.[0]?.count || 0
         }
       };
 
       setCliente(processedCliente);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro ao carregar cliente');
+    }
+  };
+
+  const fetchDFC = async () => {
+    try {
+      let query = supabase
+        .from('dfc')
+        .select('*')
+        .eq('cliente_id', id)
+        .order('periodo_inicio', { ascending: true });
+
+      // Aplicar filtros de data
+      if (filtros.dataInicio) {
+        query = query.gte('periodo_inicio', filtros.dataInicio);
+      }
+      if (filtros.dataFim) {
+        query = query.lte('periodo_fim', filtros.dataFim);
+      }
+
+      const { data, error } = await query;
+
+      if (error) {
+        throw new Error('Erro ao carregar dados DFC');
+      }
+
+      setDfcData(data || []);
+    } catch (err) {
+      console.error('Erro ao carregar DFC:', err);
     }
   };
 
@@ -224,17 +268,49 @@ export default function ClienteDetalhes() {
           </div>
         </div>
         <div className="flex items-center space-x-2">
+          <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+            {cliente._count.dfc} DFC
+          </span>
           <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
             {cliente._count.balancetes} balancetes
           </span>
         </div>
       </div>
 
+      {/* Tabs */}
+      <div className="bg-white rounded-lg shadow-sm border">
+        <div className="border-b">
+          <nav className="flex space-x-8 px-6">
+            <button
+              onClick={() => setActiveTab('balancete')}
+              className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'balancete'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <FileText className="h-4 w-4 inline mr-2" />
+              Balancetes
+            </button>
+            <button
+              onClick={() => setActiveTab('dfc')}
+              className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'dfc'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <Activity className="h-4 w-4 inline mr-2" />
+              DFC
+            </button>
+          </nav>
+        </div>
+
       {/* Charts */}
-      {chartData.length > 0 && (
+      {activeTab === 'balancete' && chartData.length > 0 && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Débitos e Créditos */}
-          <div className="bg-white p-6 rounded-lg shadow-sm border">
+          <div className="p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
               <BarChart3 className="h-5 w-5 mr-2" />
               Débitos vs Créditos por Período
@@ -254,7 +330,7 @@ export default function ClienteDetalhes() {
           </div>
 
           {/* Evolução do Saldo */}
-          <div className="bg-white p-6 rounded-lg shadow-sm border">
+          <div className="p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
               <TrendingUp className="h-5 w-5 mr-2" />
               Evolução do Saldo
@@ -280,8 +356,74 @@ export default function ClienteDetalhes() {
         </div>
       )}
 
+      {/* DFC Charts */}
+      {activeTab === 'dfc' && dfcData.length > 0 && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Fluxo por Categoria */}
+          <div className="p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+              <BarChart3 className="h-5 w-5 mr-2" />
+              Fluxo por Categoria
+            </h3>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={
+                Object.entries(
+                  dfcData.reduce((acc, item) => {
+                    acc[item.titulo] = (acc[item.titulo] || 0) + item.valor;
+                    return acc;
+                  }, {} as Record<string, number>)
+                ).map(([titulo, valor]) => ({ titulo, valor }))
+              }>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="titulo" angle={-45} textAnchor="end" height={100} />
+                <YAxis />
+                <Tooltip
+                  formatter={(value: number) => formatCurrency(value)}
+                />
+                <Bar dataKey="valor" fill="#3B82F6" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Distribuição de Valores */}
+          <div className="p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+              <TrendingUp className="h-5 w-5 mr-2" />
+              Distribuição por Categoria
+            </h3>
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={Object.entries(
+                    dfcData.reduce((acc, item) => {
+                      acc[item.titulo] = (acc[item.titulo] || 0) + Math.abs(item.valor);
+                      return acc;
+                    }, {} as Record<string, number>)
+                  ).map(([titulo, valor]) => ({ titulo, valor }))}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={({ titulo, percent }) => `${titulo}: ${(percent * 100).toFixed(0)}%`}
+                  outerRadius={80}
+                  fill="#8884d8"
+                  dataKey="valor"
+                >
+                  {Object.keys(dfcData.reduce((acc, item) => {
+                    acc[item.titulo] = true;
+                    return acc;
+                  }, {} as Record<string, boolean>)).map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'][index % 5]} />
+                  ))}
+                </Pie>
+                <Tooltip formatter={(value: number) => formatCurrency(value)} />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
+
       {/* Filtros */}
-      <div className="bg-white rounded-lg shadow-sm border p-6">
+      <div className="p-6 border-t">
         <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
           <Filter className="h-5 w-5 mr-2" />
           Filtros
@@ -323,10 +465,10 @@ export default function ClienteDetalhes() {
         </div>
       </div>
 
-      {/* Tabela de Balancetes */}
-      <div className="bg-white rounded-lg shadow-sm border">
+      {/* Tabelas */}
+      {activeTab === 'balancete' && (
         <div className="px-6 py-4 border-b">
-          <h3 className="text-lg font-semibold text-gray-900">Balancetes Detalhados</h3>
+          <h3 className="text-lg font-semibold text-gray-900">Dados Detalhados - Balancetes</h3>
         </div>
 
         {balancetes.length === 0 ? (
@@ -446,6 +588,70 @@ export default function ClienteDetalhes() {
             )}
           </>
         )}
+      )}
+
+      {/* Tabela DFC */}
+      {activeTab === 'dfc' && (
+        <>
+          <div className="px-6 py-4 border-b">
+            <h3 className="text-lg font-semibold text-gray-900">Dados Detalhados - DFC</h3>
+          </div>
+
+          {dfcData.length === 0 ? (
+            <div className="text-center py-12">
+              <Activity className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-500">Nenhum dado DFC encontrado</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Título
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Descrição
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Período
+                    </th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Valor
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {dfcData.map((item) => (
+                    <tr key={item.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm font-medium text-gray-900">
+                          {item.titulo}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="text-sm text-gray-900">
+                          {item.descricao}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900">
+                          {formatDate(item.periodo_inicio)} - {formatDate(item.periodo_fim)}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right">
+                        <div className={`text-sm font-medium ${item.valor >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          {formatCurrency(item.valor)}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </>
+      )}
       </div>
 
     </div>

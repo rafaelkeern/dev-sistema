@@ -31,6 +31,17 @@ export interface Cliente {
   updated_at: string;
 }
 
+export interface DFC {
+  id: number;
+  cliente_id: number;
+  periodo_inicio: string;
+  periodo_fim: string;
+  titulo: string;
+  descricao: string;
+  valor: number;
+  created_at: string;
+  updated_at: string;
+}
 export interface Balancete {
   id: number;
   cliente_id: number;

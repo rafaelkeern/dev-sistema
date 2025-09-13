@@ -9,8 +9,10 @@ interface Cliente {
   nome: string;
   cnpj: string;
   balancetes: { updated_at: string }[];
+  dfc: { updated_at: string }[];
   _count: {
     balancetes: number;
+    dfc: number;
   };
   ultimaImportacao: string | null;
 }
@@ -18,6 +20,7 @@ interface Cliente {
 interface Stats {
   totalClientes: number;
   totalBalancetes: number;
+  totalDFC: number;
   clientesComDados: number;
   ultimaImportacao: string | null;
 }
@@ -43,6 +46,9 @@ export default function Dashboard() {
         cnpj,
         balancetes (
           updated_at
+        ),
+        dfc (
+          updated_at
         )
       `)
       .order('nome');
@@ -64,12 +70,25 @@ export default function Dashboard() {
       // O número de períodos distintos é o tamanho do Set
       const balancetesCount = uniquePeriods.size;
 
+      // Processar DFC da mesma forma
+      const uniqueDFCPeriods = new Set<string>();
+      cliente.dfc?.forEach((dfc: any) => {
+        const periodo = `${dfc.updated_at}`;
+        uniqueDFCPeriods.add(periodo);
+      });
+      const dfcCount = uniqueDFCPeriods.size;
+
       // Usar updated_at mais recente para última importação
-      const ultimaImportacao = cliente.balancetes && cliente.balancetes.length
-        ? cliente.balancetes.reduce((latest: string, balancete: any) => {
+      const allUpdates = [
+        ...(cliente.balancetes || []),
+        ...(cliente.dfc || [])
+      ];
+      
+      const ultimaImportacao = allUpdates.length
+        ? allUpdates.reduce((latest: string, item: any) => {
             if (!latest) return balancete.updated_at;
-            return new Date(balancete.updated_at) > new Date(latest)
-              ? balancete.updated_at
+            return new Date(item.updated_at) > new Date(latest)
+              ? item.updated_at
               : latest;
           }, '')
         : null;
@@ -77,7 +96,8 @@ export default function Dashboard() {
       return {
         ...cliente,
         _count: {
-          balancetes: balancetesCount // Agora conta os períodos distintos
+          balancetes: balancetesCount,
+          dfc: dfcCount
         },
         ultimaImportacao,
       };
@@ -99,8 +119,18 @@ export default function Dashboard() {
 
     const totalBalancetes = uniquePeriodsGlobal.size; // Total de períodos distintos
 
+    // Calcular o total de DFC
+    const uniqueDFCPeriodsGlobal = new Set<string>();
+    processedClientes.forEach(cliente => {
+      cliente.dfc?.forEach((dfc: any) => {
+        const periodo = `${dfc.updated_at}`;
+        uniqueDFCPeriodsGlobal.add(periodo);
+      });
+    });
+    const totalDFC = uniqueDFCPeriodsGlobal.size;
+
     const clientesComDados = processedClientes.filter(
-      (cliente) => cliente._count.balancetes > 0
+      (cliente) => cliente._count.balancetes > 0 || cliente._count.dfc > 0
     ).length;
 
     // Última importação global (data mais recente entre todos os clientes)
@@ -113,7 +143,8 @@ export default function Dashboard() {
 
     setStats({
       totalClientes,
-      totalBalancetes, // Atualiza com o total de períodos distintos
+      totalBalancetes,
+      totalDFC,
       clientesComDados,
       ultimaImportacao: ultimaImportacaoGlobal
         ? new Date(ultimaImportacaoGlobal).toLocaleDateString('pt-BR')
@@ -148,7 +179,7 @@ export default function Dashboard() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
         <div className="bg-white p-6 rounded-lg shadow-sm border">
           <div className="flex items-center">
             <div className="p-3 bg-blue-100 rounded-lg">
@@ -175,20 +206,32 @@ export default function Dashboard() {
 
         <div className="bg-white p-6 rounded-lg shadow-sm border">
           <div className="flex items-center">
-            <div className="p-3 bg-yellow-100 rounded-lg">
-              <TrendingUp className="h-6 w-6 text-yellow-600" />
+            <div className="p-3 bg-purple-100 rounded-lg">
+              <TrendingUp className="h-6 w-6 text-purple-600" />
             </div>
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Clientes com Dados</p>
-              <p className="text-2xl font-semibold text-gray-900">{stats?.clientesComDados ?? 0}</p>
+              <p className="text-sm font-medium text-gray-600">Total de DFC</p>
+              <p className="text-2xl font-semibold text-gray-900">{stats?.totalDFC ?? 0}</p>
             </div>
           </div>
         </div>
 
         <div className="bg-white p-6 rounded-lg shadow-sm border">
           <div className="flex items-center">
-            <div className="p-3 bg-purple-100 rounded-lg">
-              <Calendar className="h-6 w-6 text-purple-600" />
+            <div className="p-3 bg-orange-100 rounded-lg">
+              <Users className="h-6 w-6 text-orange-600" />
+            </div>
+            <div className="ml-4">
+              <p className="text-sm font-medium text-gray-600">Clientes com Dados</p>
+              <p className="text-xl font-semibold text-gray-900">{stats?.clientesComDados ?? 0}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white p-6 rounded-lg shadow-sm border">
+          <div className="flex items-center">
+            <div className="p-3 bg-indigo-100 rounded-lg">
+              <Calendar className="h-6 w-6 text-indigo-600" />
             </div>
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Última Importação</p>
@@ -239,7 +282,7 @@ export default function Dashboard() {
                   <div className="flex items-center space-x-4">
                     <div className="text-right">
                       <p className="text-sm font-medium text-gray-900">
-                        {cliente._count?.balancetes ?? 0} balancetes
+                        {cliente._count?.balancetes ?? 0} balancetes | {cliente._count?.dfc ?? 0} DFC
                       </p>
                       <p className="text-xs text-gray-500">registrados</p>
                       {cliente.ultimaImportacao && (

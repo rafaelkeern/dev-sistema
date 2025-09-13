@@ -9,10 +9,12 @@ interface UploadResult {
   cnpj: string;
   periodo: string;
   registros: number;
+  tipo: 'balancete' | 'dfc';
 }
 
 export default function Upload() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [uploadType, setUploadType] = useState<'balancete' | 'dfc'>('balancete');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<UploadResult | null>(null);
   const [error, setError] = useState('');
@@ -24,6 +26,163 @@ export default function Upload() {
       setResult(null);
       setError('');
     }
+  };
+
+  const handleBalanceteUpload = async (workbook: any, cliente: any, periodoInicio: string, periodoFim: string, periodoStr: string) => {
+    const worksheet = workbook.worksheets[0];
+    
+    // Ler dados das linhas a partir da linha 8
+    const balancetes = [];
+    let rowNum = 8;
+
+    while (true) {
+      const row = worksheet.getRow(rowNum);
+      
+      const codigo = row.getCell('A').value?.toString().trim();
+      
+      if (!codigo || codigo === "RESUMO DO BALANCETE") break;
+
+      const classificacao = row.getCell('E').value?.toString().trim() || '';
+      
+      const descricaoPartes: string[] = [];
+      for (let col = 9; col <= 14; col++) {
+        const valor = row.getCell(col).value?.toString().trim();
+        if (valor && !descricaoPartes.includes(valor)) {
+          descricaoPartes.push(valor);
+        }
+      }
+
+      const descricao_conta = descricaoPartes.join(' > ');
+
+      const saldo_anterior = parseFloat(row.getCell('V').value?.toString() || '0');
+      const debito = parseFloat(row.getCell('Y').value?.toString() || '0');
+      const credito = parseFloat(row.getCell('AC').value?.toString() || '0');
+      const saldo_atual = parseFloat(row.getCell('AI').value?.toString() || '0');
+
+      balancetes.push({
+        cliente_id: cliente.id,
+        periodo_inicio: periodoInicio,
+        periodo_fim: periodoFim,
+        codigo: codigo.replace(/^0+/, '') || '0',
+        classificacao,
+        descricao_conta,
+        saldo_anterior: isNaN(saldo_anterior) ? 0 : saldo_anterior,
+        debito: isNaN(debito) ? 0 : debito,
+        credito: isNaN(credito) ? 0 : credito,
+        saldo_atual: isNaN(saldo_atual) ? 0 : saldo_atual
+      });
+
+      rowNum++;
+    }
+
+    if (balancetes.length === 0) {
+      throw new Error('Nenhum dado encontrado na planilha');
+    }
+
+    // Deletar dados existentes do mesmo período
+    await supabase
+      .from('balancetes')
+      .delete()
+      .eq('cliente_id', cliente.id)
+      .eq('periodo_inicio', periodoInicio)
+      .eq('periodo_fim', periodoFim);
+
+    // Inserir novos dados
+    const { error: insertError } = await supabase
+      .from('balancetes')
+      .insert(balancetes);
+
+    if (insertError) {
+      throw new Error('Erro ao inserir dados: ' + insertError.message);
+    }
+
+    return {
+      message: 'Balancete importado com sucesso',
+      cliente: cliente.nome,
+      cnpj: cliente.cnpj,
+      periodo: periodoStr,
+      registros: balancetes.length,
+      tipo: 'balancete' as const
+    };
+  };
+
+  const handleDFCUpload = async (workbook: any, cliente: any, periodoInicio: string, periodoFim: string, periodoStr: string) => {
+    const worksheet = workbook.worksheets[0];
+    
+    // Ler dados das linhas a partir da linha 7
+    const dfcData = [];
+    let rowNum = 7;
+    let currentTitulo = '';
+
+    while (true) {
+      const row = worksheet.getRow(rowNum);
+      
+      const cellA = row.getCell('A').value?.toString().trim();
+      
+      // Parar quando chegar em "DISPONIBILIDADES - NO FINAL DO PERÍODO"
+      if (cellA === "DISPONIBILIDADES - NO FINAL DO PERÍODO") break;
+      
+      // Se não há mais dados, parar
+      if (!cellA && !row.getCell('D').value && !row.getCell('O').value) {
+        rowNum++;
+        if (rowNum > 100) break; // Evitar loop infinito
+        continue;
+      }
+
+      // Se há valor na coluna A, é um título
+      if (cellA) {
+        currentTitulo = cellA;
+      }
+
+      // Se há valor na coluna D, é uma descrição
+      const descricao = row.getCell('D').value?.toString().trim();
+      const valorStr = row.getCell('O').value?.toString().trim();
+      
+      if (descricao && valorStr) {
+        const valor = parseFloat(valorStr.replace(/[^\d,-]/g, '').replace(',', '.')) || 0;
+        
+        dfcData.push({
+          cliente_id: cliente.id,
+          periodo_inicio: periodoInicio,
+          periodo_fim: periodoFim,
+          titulo: currentTitulo,
+          descricao: descricao,
+          valor: valor
+        });
+      }
+
+      rowNum++;
+    }
+
+    if (dfcData.length === 0) {
+      throw new Error('Nenhum dado DFC encontrado na planilha');
+    }
+
+    // Deletar dados existentes do mesmo período
+    await supabase
+      .from('dfc')
+      .delete()
+      .eq('cliente_id', cliente.id)
+      .eq('periodo_inicio', periodoInicio)
+      .eq('periodo_fim', periodoFim);
+
+    // Inserir novos dados
+    const { error: insertError } = await supabase
+      .from('dfc')
+      .insert(dfcData);
+
+    if (insertError) {
+      throw new Error('Erro ao inserir dados DFC: ' + insertError.message);
+    }
+
+    return {
+      message: 'DFC importado com sucesso',
+      cliente: cliente.nome,
+      cnpj: cliente.cnpj,
+      periodo: periodoStr,
+      registros: dfcData.length,
+      tipo: 'dfc' as const
+    };
   };
 
   const handleUpload = async () => {
@@ -90,83 +249,15 @@ export default function Upload() {
     const periodoInicio = new Date(anoInicio, mesInicio - 1, diaInicio).toISOString().split('T')[0];
     const periodoFim = new Date(anoFim, mesFim - 1, diaFim).toISOString().split('T')[0];
 
-    // Ler dados das linhas a partir da linha 8
-    const balancetes = [];
-    let rowNum = 8;
-
-    // Modificado para verificar até a última linha com um número na coluna A, sem considerar "RESUMO DO BALANCETE"
-    while (true) {
-      const row = worksheet.getRow(rowNum);
-      
-      // Verificar se a célula da coluna A contém um número ou "RESUMO DO BALANCETE"
-      const codigo = row.getCell('A').value?.toString().trim();
-      
-      // Se a célula da coluna A for vazia ou "RESUMO DO BALANCETE", parar o loop
-      if (!codigo || codigo === "RESUMO DO BALANCETE") break;
-
-      const classificacao = row.getCell('E').value?.toString().trim() || '';
-      
-      // Concatenar descrição das colunas I:N sem repetir as partes
-      const descricaoPartes: string[] = [];
-      for (let col = 9; col <= 14; col++) {
-        const valor = row.getCell(col).value?.toString().trim();
-        if (valor && !descricaoPartes.includes(valor)) {
-          descricaoPartes.push(valor); // Adicionar apenas se não for repetido
-        }
-      }
-
-      // Concatenar as partes da descrição sem repetição
-      const descricao_conta = descricaoPartes.join(' > ');
-
-      const saldo_anterior = parseFloat(row.getCell('V').value?.toString() || '0');
-      const debito = parseFloat(row.getCell('Y').value?.toString() || '0');
-      const credito = parseFloat(row.getCell('AC').value?.toString() || '0');
-      const saldo_atual = parseFloat(row.getCell('AI').value?.toString() || '0');
-
-      balancetes.push({
-        cliente_id: cliente.id,
-        periodo_inicio: periodoInicio,
-        periodo_fim: periodoFim,
-        codigo: codigo.replace(/^0+/, '') || '0', // Remover zeros à esquerda
-        classificacao,
-        descricao_conta,  // Usando a descrição final ajustada
-        saldo_anterior: isNaN(saldo_anterior) ? 0 : saldo_anterior,
-        debito: isNaN(debito) ? 0 : debito,
-        credito: isNaN(credito) ? 0 : credito,
-        saldo_atual: isNaN(saldo_atual) ? 0 : saldo_atual
-      });
-
-      rowNum++;
+    // Processar baseado no tipo selecionado
+    let uploadResult;
+    if (uploadType === 'balancete') {
+      uploadResult = await handleBalanceteUpload(workbook, cliente, periodoInicio, periodoFim, periodoStr);
+    } else {
+      uploadResult = await handleDFCUpload(workbook, cliente, periodoInicio, periodoFim, periodoStr);
     }
 
-    if (balancetes.length === 0) {
-      throw new Error('Nenhum dado encontrado na planilha');
-    }
-
-    // Deletar dados existentes do mesmo período
-    await supabase
-      .from('balancetes')
-      .delete()
-      .eq('cliente_id', cliente.id)
-      .eq('periodo_inicio', periodoInicio)
-      .eq('periodo_fim', periodoFim);
-
-    // Inserir novos dados
-    const { error: insertError } = await supabase
-      .from('balancetes')
-      .insert(balancetes);
-
-    if (insertError) {
-      throw new Error('Erro ao inserir dados: ' + insertError.message);
-    }
-
-    setResult({
-      message: 'Planilha importada com sucesso',
-      cliente: cliente.nome,
-      cnpj,
-      periodo: periodoStr,
-      registros: balancetes.length
-    });
+    setResult(uploadResult);
 
     setSelectedFile(null);
     // Reset input file
@@ -186,29 +277,74 @@ export default function Upload() {
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900">Upload de Planilhas</h1>
-        <p className="text-gray-600 mt-1">Importe balancetes contábeis via arquivo Excel</p>
+        <p className="text-gray-600 mt-1">Importe balancetes e DFC via arquivo Excel</p>
+      </div>
+
+      {/* Tipo de Upload */}
+      <div className="bg-white rounded-lg border p-6 mb-6">
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">Tipo de Arquivo</h2>
+        <div className="flex space-x-4">
+          <label className="flex items-center">
+            <input
+              type="radio"
+              name="uploadType"
+              value="balancete"
+              checked={uploadType === 'balancete'}
+              onChange={(e) => setUploadType(e.target.value as 'balancete' | 'dfc')}
+              className="mr-2"
+            />
+            <span className="text-gray-700">Balancete</span>
+          </label>
+          <label className="flex items-center">
+            <input
+              type="radio"
+              name="uploadType"
+              value="dfc"
+              checked={uploadType === 'dfc'}
+              onChange={(e) => setUploadType(e.target.value as 'balancete' | 'dfc')}
+              className="mr-2"
+            />
+            <span className="text-gray-700">DFC (Demonstração dos Fluxos de Caixa)</span>
+          </label>
+        </div>
       </div>
 
       {/* Instructions */}
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-        <h2 className="text-lg font-semibold text-blue-900 mb-4">Instruções para Upload</h2>
+        <h2 className="text-lg font-semibold text-blue-900 mb-4">
+          Instruções para Upload - {uploadType === 'balancete' ? 'Balancete' : 'DFC'}
+        </h2>
         <div className="space-y-3 text-blue-800">
           <p><strong>Estrutura da Planilha:</strong></p>
           <ul className="list-disc list-inside space-y-1 ml-4">
             <li><strong>G2:</strong> CNPJ do cliente (deve estar cadastrado)</li>
             <li><strong>G3:</strong> Período (formato: 01/01/2025 - 31/01/2025)</li>
-            <li><strong>Linha 8 em diante:</strong> Dados dos balancetes</li>
+            <li><strong>Linha {uploadType === 'balancete' ? '8' : '7'} em diante:</strong> Dados do {uploadType}</li>
           </ul>
-          <p className="mt-4"><strong>Colunas de Dados:</strong></p>
-          <ul className="list-disc list-inside space-y-1 ml-4">
-            <li><strong>A:</strong> Código da conta</li>
-            <li><strong>E:</strong> Classificação</li>
-            <li><strong>I-N:</strong> Descrição da conta (hierárquica)</li>
-            <li><strong>V:</strong> Saldo anterior</li>
-            <li><strong>Y:</strong> Débito</li>
-            <li><strong>CA:</strong> Crédito</li>
-            <li><strong>AI:</strong> Saldo atual</li>
-          </ul>
+          {uploadType === 'balancete' ? (
+            <>
+              <p className="mt-4"><strong>Colunas de Dados (Balancete):</strong></p>
+              <ul className="list-disc list-inside space-y-1 ml-4">
+                <li><strong>A:</strong> Código da conta</li>
+                <li><strong>E:</strong> Classificação</li>
+                <li><strong>I-N:</strong> Descrição da conta (hierárquica)</li>
+                <li><strong>V:</strong> Saldo anterior</li>
+                <li><strong>Y:</strong> Débito</li>
+                <li><strong>AC:</strong> Crédito</li>
+                <li><strong>AI:</strong> Saldo atual</li>
+              </ul>
+            </>
+          ) : (
+            <>
+              <p className="mt-4"><strong>Colunas de Dados (DFC):</strong></p>
+              <ul className="list-disc list-inside space-y-1 ml-4">
+                <li><strong>A:</strong> Título da seção</li>
+                <li><strong>D:</strong> Descrição do item</li>
+                <li><strong>O:</strong> Valor do item</li>
+                <li><strong>Parada:</strong> Importação para em "DISPONIBILIDADES - NO FINAL DO PERÍODO"</li>
+              </ul>
+            </>
+          )}
         </div>
       </div>
 
@@ -280,6 +416,7 @@ export default function Upload() {
                 <p><strong>CNPJ:</strong> {result.cnpj}</p>
                 <p><strong>Período:</strong> {result.periodo}</p>
                 <p><strong>Registros importados:</strong> {result.registros}</p>
+                <p><strong>Tipo:</strong> {result.tipo === 'balancete' ? 'Balancete' : 'DFC'}</p>
               </div>
             </div>
           </div>
