@@ -613,7 +613,7 @@ export default function ClienteDetalhes() {
         <>
           {/* Resumo por Período */}
           <div className="px-6 py-4 border-b">
-            <h3 className="text-lg font-semibold text-gray-900">Registros por Período</h3>
+            <h3 className="text-lg font-semibold text-gray-900">Registros por Período - Balancetes</h3>
           </div>
           {periodosResumo.length === 0 ? (
             <div className="text-center py-12">
@@ -803,7 +803,7 @@ export default function ClienteDetalhes() {
         <>
           {/* Resumo por Período DFC */}
           <div className="px-6 py-4 border-b">
-            <h3 className="text-lg font-semibold text-gray-900">Registros por Período</h3>
+            <h3 className="text-lg font-semibold text-gray-900">Registros por Período - DFC</h3>
           </div>
           {periodosDFCResumo.length === 0 ? (
             <div className="text-center py-12">
