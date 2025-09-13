@@ -135,14 +135,13 @@ export default function Upload() {
       let valorLimpo = valorStr.replace(/[^\d,.-]/g, ''); // Remove caracteres não numéricos
 valorLimpo = valorLimpo.replace(/\./g, '').replace(',', '.'); // Remove pontos e troca vírgula por ponto
 
-// Garantir que tenha 2 casas decimais: se após o ponto decimal tiver só 1 dígito, acrescenta o zero
+// Garantir que tenha duas casas decimais
 if (valorLimpo.includes('.')) {
   const partes = valorLimpo.split('.');
   if (partes[1].length === 1) {
     valorLimpo = partes[0] + '.' + partes[1] + '0';
   }
 } else {
-  // Se não tiver decimal, acrescenta '.00'
   valorLimpo = valorLimpo + '.00';
 }
 
