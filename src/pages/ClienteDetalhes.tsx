@@ -654,7 +654,7 @@ export default function ClienteDetalhes() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right">
                         <div className={`text-sm font-medium ${item.valor >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                          {formatCurrency(item.valor)}
+                          {formatCurrencyFromInt(item.valor)}
                         </div>
                       </td>
                     </tr>
