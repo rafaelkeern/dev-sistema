@@ -131,10 +131,11 @@ export default function Upload() {
     const valorStr = row.getCell('O').value?.toString().trim();
 
 if (descricao && valorStr) {
-  // Remove tudo, exceto dígitos e vírgula ou ponto
+  // Remove pontos dos milhares e troca vírgula por ponto
   const valorLimpo = valorStr.replace(/\./g, '').replace(',', '.');
-  // Converte corretamente para float
-  const valor = parseFloat(valorLimpo);
+
+  // Força duas casas decimais usando toFixed
+  const valor = Number.parseFloat(valorLimpo).toFixed(2);
 
   dfcData.push({
     cliente_id: cliente.id,
@@ -142,7 +143,7 @@ if (descricao && valorStr) {
     periodo_fim: periodoFim,
     titulo: titulo,
     descricao: descricao,
-    valor: isNaN(valor) ? 0 : valor
+    valor: valor // valor agora é string "179487.30"
   });
 }
 
