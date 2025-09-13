@@ -80,36 +80,58 @@ export default function ClienteDetalhes() {
     }
   }, [currentPage, filtros]);
 
-  const fetchClienteDetalhes = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('clientes')
-        .select(`
-          *,
-          balancetes:balancetes(count),
-          dfc:dfc(count)
-        `)
-        .eq('id', id)
-        .single();
+ const fetchClienteDetalhes = async () => {
+  try {
+    const { data, error } = await supabase
+      .from('clientes')
+      .select(`
+        *,
+        balancetes (id, periodo_inicio, periodo_fim, updated_at),
+        dfc (id, periodo_inicio, periodo_fim, updated_at)
+      `)
+      .eq('id', id)
+      .single();
 
-      if (error || !data) {
-        throw new Error('Cliente não encontrado');
-      }
-
-      // Processar dados para incluir contagem
-      const processedCliente = {
-        ...data,
-        _count: {
-          balancetes: data.balancetes?.[0]?.count || 0,
-          dfc: data.dfc?.[0]?.count || 0
-        }
-      };
-
-      setCliente(processedCliente);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao carregar cliente');
+    if (error || !data) {
+      throw new Error('Cliente não encontrado');
     }
-  };
+
+    // Agrupar balancetes por período único
+    const uniqueBalancetePeriods = new Set<string>();
+    (data.balancetes || []).forEach((b: any) => {
+      uniqueBalancetePeriods.add(`${b.periodo_inicio}_${b.periodo_fim}`);
+    });
+
+    // Agrupar dfc por período único
+    const uniqueDfcPeriods = new Set<string>();
+    (data.dfc || []).forEach((d: any) => {
+      uniqueDfcPeriods.add(`${d.periodo_inicio}_${d.periodo_fim}`);
+    });
+
+    // Contar as importações mais recentes (baseado no max updated_at)
+    const allUpdatedAt = [
+      ...(data.balancetes || []).map((b: any) => b.updated_at),
+      ...(data.dfc || []).map((d: any) => d.updated_at)
+    ].filter(Boolean);
+
+    const ultimaImportacao = allUpdatedAt.length > 0
+      ? new Date(Math.max(...allUpdatedAt.map(d => new Date(d).getTime()))).toISOString()
+      : null;
+
+    setCliente({
+      ...data,
+      _count: {
+        balancetes: uniqueBalancetePeriods.size,
+        dfc: uniqueDfcPeriods.size
+      },
+      ultimaImportacao
+    });
+
+  } catch (err) {
+    setError(err instanceof Error ? err.message : 'Erro ao carregar cliente');
+  }
+};
+
 
   const fetchDFC = async () => {
     try {
