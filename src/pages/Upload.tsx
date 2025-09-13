@@ -131,9 +131,10 @@ export default function Upload() {
     const valorStr = row.getCell('O').value?.toString().trim();
 
 if (descricao && valorStr) {
-  // Remove pontos (milhares) e substitui vírgula por ponto decimal
+  // Remove tudo, exceto dígitos e vírgula ou ponto
   const valorLimpo = valorStr.replace(/\./g, '').replace(',', '.');
-  const valor = parseFloat(valorLimpo) || 0;
+  // Converte corretamente para float
+  const valor = parseFloat(valorLimpo);
 
   dfcData.push({
     cliente_id: cliente.id,
@@ -141,7 +142,7 @@ if (descricao && valorStr) {
     periodo_fim: periodoFim,
     titulo: titulo,
     descricao: descricao,
-    valor: valor
+    valor: isNaN(valor) ? 0 : valor
   });
 }
 
