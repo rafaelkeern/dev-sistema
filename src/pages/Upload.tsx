@@ -129,11 +129,10 @@ export default function Upload() {
     const titulo = cellA || '';
     const descricao = row.getCell('D').value?.toString().trim();  // Descrição da coluna D
     const valorStr = row.getCell('O').value?.toString().trim();   // Valor da coluna O
-    
+
     if (descricao && valorStr) {
       const valorLimpo = valorStr.replace(/\./g, '').replace(',', '.');
       const valor = parseFloat(valorLimpo) || 0;
-
       dfcData.push({
         cliente_id: cliente.id,
         periodo_inicio: periodoInicio,
@@ -143,6 +142,7 @@ export default function Upload() {
         valor: valor
       });
     }
+
 
     rowNum++; // Próxima linha
   }
