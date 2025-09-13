@@ -112,12 +112,10 @@ export default function Upload() {
   const dfcData = [];
   let rowNum = 7;
   let ordemAtual = 0;
-while (true) {
-  const row = worksheet.getRow(rowNum);
-  const cellA = row.getCell('A').value?.toString().trim();
-  
-  if (cellA === "DISPONIBILIDADES - NO FINAL DO PERÍODO") break;  
-  if (!cellA && !row.getCell('D').value && !row.getCell('O').value) break;
+  while (true) {
+    const row = worksheet.getRow(rowNum);
+    const cellA = row.getCell('A').value?.toString().trim();
+    if (cellA === "DISPONIBILIDADES - NO FINAL DO PERÍODO") break;
     const titulo = cellA || '';
     const descricao = row.getCell('D').value?.toString().trim();
     const valorStr = row.getCell('O').value?.toString().trim();
