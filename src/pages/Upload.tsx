@@ -110,21 +110,21 @@ export default function Upload() {
   const worksheet = workbook.worksheets[0];
   const dfcData = [];
   let rowNum = 7;
-  let ordemAtual = 0;
+
   while (true) {
     const row = worksheet.getRow(rowNum);
     const cellA = row.getCell('A').value?.toString().trim();
+    const cellD = row.getCell('D').value?.toString().trim();
+    const cellO = row.getCell('O').value?.toString().trim();
 
-    if (cellA === "DISPONIBILIDADES - NO FINAL DO PERÍODO") break;
+    // Para se a linha estiver completamente vazia nessas colunas principais
+    if (!cellA && !cellD && !cellO) break;
 
-    // Não interromper só porque D e O estão vazios, para poder capturar títulos
-    if (!cellA) break; // interrompe se não há título (coluna A vazia)
+    const titulo = cellA || '';
+    const descricao = cellD || '';
+    const valorStr = cellO || '';
 
-    const titulo = cellA;
-    const descricao = row.getCell('D').value?.toString().trim() || '';
-    const valorStr = row.getCell('O').value?.toString().trim() || '';
-
-    // Tratar valor, caso haja
+    // Processar valor
     let valorFormatado = 0;
     if (valorStr) {
       let valorLimpo = valorStr.replace(/[^\d,.-]/g, '');
@@ -148,9 +148,9 @@ export default function Upload() {
       titulo,
       descricao,
       valor: valorFormatado,
-      ordem: ordemAtual
+      ordem: rowNum - 7
     });
-    ordemAtual++;
+
     rowNum++;
   }
 
@@ -158,7 +158,6 @@ export default function Upload() {
     throw new Error('Nenhum dado DFC encontrado na planilha');
   }
 
-  // Deletar dados antigos e inserir novos
   await supabase
     .from('dfc')
     .delete()
@@ -169,6 +168,7 @@ export default function Upload() {
   const { error: insertError } = await supabase
     .from('dfc')
     .insert(dfcData);
+
   if (insertError) {
     throw new Error('Erro ao inserir dados DFC: ' + insertError.message);
   }
